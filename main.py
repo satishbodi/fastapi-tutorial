@@ -1,24 +1,27 @@
 import boto3
 import csv
 import io
+import os
 import json
 import threading
 import time
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 
-S3_BUCKET = "your-s3-bucket-name"
-AWS_REGION = "us-east-1"
-SQS_QUEUE_URL = "your-sqs-queue-url"
+S3_BUCKET = os.getenv("S3_BUCKET")
+AWS_REGION = os.getenv("AWS_REGION")
+SQS_QUEUE_URL = os.getenv("SQS_QUEUE_URL")
 REQUIRED_COLUMNS = ["id", "name", "email"]
 
-# TODO We may not need to hardcode credentials if using IAM roles in EKS
 session = boto3.Session(
-        aws_access_key_id='your-access-key-id',
-        aws_secret_access_key='your-secret-access-key'
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY")
     )
 
 # Initialize AWS clients

@@ -1,5 +1,9 @@
 FROM python:3.11-slim
 
+# Set environment variables
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
+
 WORKDIR /app
 
 COPY requirements.txt .
