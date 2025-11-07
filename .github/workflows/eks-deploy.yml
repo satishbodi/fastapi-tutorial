@@ -1,0 +1,57 @@
+name: FastAPI CI/CD to EKS
+
+on:
+  push:
+    branches:
+      - main  # Or your chosen branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+      EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        run: |
+          docker build -t $ECR_REPOSITORY:latest .
+          docker tag $ECR_REPOSITORY:latest $ECR_REPOSITORY:${{ github.sha }}
+
+      - name: Push image to Amazon ECR
+        run: |
+          docker push $ECR_REPOSITORY:latest
+          docker push $ECR_REPOSITORY:${{ github.sha }}
+
+      # Optional: Update image tag in your Kubernetes manifest
+      - name: Set image tag in Kubernetes manifests
+        run: |
+          sed -i "s|image: .*$|image: $ECR_REPOSITORY:${{ github.sha }}|" k8s/fastapi-deployment.yaml
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Set up Kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
+
+      - name: Deploy to EKS
+        run: |
+          kubectl apply -f k8s/fastapi-deployment.yaml
+          kubectl apply -f k8s/fastapi-service.yaml

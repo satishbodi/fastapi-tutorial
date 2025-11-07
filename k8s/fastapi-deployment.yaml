@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-csv-validator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi-csv-validator
+  template:
+    metadata:
+      labels:
+        app: fastapi-csv-validator
+    spec:
+      containers:
+        - name: fastapi
+          image: 149047640509.dkr.ecr.ap-south-1.amazonaws.com/fastapi-csv-validator:v1
+          ports:
+            - containerPort: 80
+          env:
+            - name: AWS_REGION
+              value: "ap-south-1"
+            - name: S3_BUCKET
+              value: "sbodi-bucket"
+            - name: SQS_QUEUE_URL
+              value: "https://sqs.ap-south-1.amazonaws.com/149047640509/sbodi-queue"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-csv-validator
+spec:
+  selector:
+    app: fastapi-csv-validator
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
